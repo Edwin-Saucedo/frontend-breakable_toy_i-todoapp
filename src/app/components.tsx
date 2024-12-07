@@ -14,6 +14,7 @@ import { Task } from "./tasks-columns";
 import { ReactNode } from "react";
 import { taskAction } from "./actions";
 import dayjs from "dayjs";
+import { Close } from "@radix-ui/react-dialog";
 
 interface TaskModalProps {
 	taskData?: Task;
@@ -87,17 +88,17 @@ export function TaskModal({
 								name="dueDate"
 								id="due-date"
 								defaultValue={(() => {
-									const date = taskData?.dueDate
-										? taskData.dueDate
-										: new Date();
-									return dayjs(date).format("YYYY-MM-DD");
+									const date = taskData?.dueDate ? taskData.dueDate : undefined;
+									return date ? dayjs(date).format("YYYY-MM-DD") : "";
 								})()}
 								type="date"
 							/>
 						</div>
 					</div>
 					<DialogFooter>
-						<Button type="submit">Apply</Button>
+						<Close asChild>
+							<Button type="submit">Apply</Button>
+						</Close>
 					</DialogFooter>
 				</form>
 			</DialogContent>

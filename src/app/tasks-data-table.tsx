@@ -41,13 +41,20 @@ export function TasksDataTable({ table }: { table: TableT<Task> }) {
 						<TableRow key={headerGroup.id}>
 							{headerGroup.headers.map((header) => {
 								return (
-									<TableHead key={header.id}>
+									<TableHead
+										key={header.id}
+										onClick={header.column.getToggleSortingHandler()}
+									>
 										{header.isPlaceholder
 											? null
 											: flexRender(
 													header.column.columnDef.header,
 													header.getContext()
 											  )}
+										{{
+											asc: " 🔼",
+											desc: " 🔽",
+										}[header.column.getIsSorted() as string] ?? null}
 									</TableHead>
 								);
 							})}

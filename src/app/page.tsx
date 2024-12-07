@@ -10,23 +10,36 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from "@/components/ui/pagination";
-import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+	getCoreRowModel,
+	getSortedRowModel,
+	SortingState,
+	useReactTable,
+} from "@tanstack/react-table";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import http from "../http-common";
 import { TaskModal } from "./components";
 import {
+	Metrics,
 	PRIORITY_PLACEHOLDER,
 	PRIORITY_TASKS,
 	STATUS_PLACEHOLDER,
 	STATUS_TASKS,
 } from "./constants";
-import { Task, taskColumns } from "./tasks-columns";
+import { taskColumns } from "./tasks-columns";
 import { TasksDataTable } from "./tasks-data-table";
 
 export default function Home() {
 	const [data, setData] = useState({ tasks: [], total: 0 });
 	const [page, setPage] = useState<number>(Math.ceil(data.total / 10) + 1);
+	const [sorting, setSorting] = useState<SortingState>([]);
+	const [metrics, setMetrics] = useState<Metrics>({
+		highAverage: 0,
+		mediumAverage: 0,
+		lowAverage: 0,
+		totalAverage: 0,
+	});
 	const searchParams = useSearchParams();
 	const { replace } = useRouter();
 	const pathname = usePathname();
@@ -36,10 +49,29 @@ export default function Home() {
 		meta: {
 			a: 1,
 		},
+		state: {
+			sorting,
+		},
+		getSortedRowModel: getSortedRowModel(),
+		enableSorting: true,
 		getCoreRowModel: getCoreRowModel(),
+		onSortingChange: setSorting,
+		initialState: {
+			sorting: [
+				{
+					id: "name",
+					desc: false,
+				},
+			],
+		},
 	});
+	const [activity, setActivity] = useState(false);
 
-	const a = (e: FormEvent<HTMLFormElement>) => {
+	const handleActivity = () => {
+		setActivity(!activity);
+	};
+
+	const search = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const target: any | unknown = e.target;
@@ -101,28 +133,42 @@ export default function Home() {
 
 		paginationSearchParams.append("page", `${page + 1}`);
 		return `${pathname}?${paginationSearchParams.toString()}`;
-	}, [page]);
-
-	const isNextPage = (page + 1) * 10 < data.total;
+	}, [searchParams, pathname, page]);
 
 	useEffect(() => {
+		const sortedBy = sorting.at(0)?.id;
 		let getAllFetchURL = "/todos";
 		if (searchParams.toString()) {
 			getAllFetchURL = getAllFetchURL.concat("?", searchParams.toString());
+			if (sortedBy) {
+				getAllFetchURL = getAllFetchURL.concat("&", "sort=", sortedBy);
+			}
+		} else if (sortedBy) {
+			getAllFetchURL = getAllFetchURL.concat("?", "sort=", sortedBy);
 		}
 		http.get(getAllFetchURL).then((res) => {
 			setData(res.data);
 		});
-	}, [searchParams]);
+
+		http.get("/todos/metrics").then((res) => {
+			setMetrics(res.data);
+		});
+	}, [searchParams, activity, sorting]);
 
 	return (
-		<main className="flex flex-col gap-8 row-start-2 sm:items-start  font-[family-name:var(--font-geist-sans)]">
+		<main
+			className="flex flex-col gap-8 row-start-2 sm:items-start  font-[family-name:var(--font-geist-sans)]"
+			onClick={handleActivity}
+			onChange={handleActivity}
+			onSubmit={handleActivity}
+			onBlur={handleActivity}
+		>
 			{/* Using a responsive container for limiting to expand on large screens */}
 			<ResponsiveContainer className="max-w-maximum-screens p-4  space-y-4 *:px-8">
 				{/* Top container for search */}
 				<form
 					className="flex flex-wrap justify-between  w-full sm:[&_:is(input,button,div)]:w-full border py-8 rounded-lg "
-					onSubmit={a}
+					onSubmit={search}
 				>
 					<div className="min-w-full flex place-items-center sm:flex-col sm:place-items-start sm:gap-2">
 						<label htmlFor="name" className="max-w-[4rem] min-w-[4rem] px-2">
@@ -178,6 +224,31 @@ export default function Home() {
 						</PaginationContent>
 					</Pagination>
 				</div>
+				{/* Metrics section */}
+				{metrics && (
+					<div className="w-full h-32 border rounded-lg flex *:grow">
+						<div className="flex flex-col *:grow">
+							<div className="flex gap-4">
+								<p className="font-bold">High priority</p>
+								<p>{metrics.highAverage?.toFixed(2)}&nbsp;days</p>
+							</div>
+							<div className="flex gap-4">
+								<p className="font-bold">Medium priority</p>
+								<p>{metrics.mediumAverage?.toFixed(2)}&nbsp;days</p>
+							</div>
+							<div className="flex gap-4">
+								<p className="font-bold">Low priority</p>
+								<p>{metrics.lowAverage?.toFixed(2)}&nbsp;days</p>
+							</div>
+						</div>
+						<div className="flex flex-col *:grow">
+							<div className="flex gap-4">
+								<p className="font-bold">Total tasks</p>
+								<p>{metrics.totalAverage?.toFixed(2)}&nbsp;days</p>
+							</div>
+						</div>
+					</div>
+				)}
 			</ResponsiveContainer>
 		</main>
 	);
