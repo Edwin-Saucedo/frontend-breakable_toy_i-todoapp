@@ -31,7 +31,7 @@ export function TasksDataTable({ table }: { table: TableT<Task> }) {
 		return `${getStatusDate(weeksLeft)} ${textDecoration}`;
 	};
 
-	const columns = table.getAllColumns().length;
+	const columns = table.getAllColumns?.()?.length ?? 0;
 
 	return (
 		<div className="rounded-md border h-auto">

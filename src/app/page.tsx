@@ -31,7 +31,7 @@ export default function Home() {
 	const { replace } = useRouter();
 	const pathname = usePathname();
 	const table = useReactTable({
-		data: data.tasks,
+		data: data?.tasks ?? [],
 		columns: taskColumns,
 		meta: {
 			a: 1,
