@@ -21,17 +21,57 @@ import {
 	STATUS_PLACEHOLDER,
 	STATUS_TASKS,
 } from "./constants";
-import { Task, taskColumns } from "./tasks-columns";
+import { taskColumns } from "./tasks-columns";
 import { TasksDataTable } from "./tasks-data-table";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { deleteTodo, fetchTodos, Todo, updateTodo } from "../../redux/slices/toDosSlice";
 
 export default function Home() {
 	const [data, setData] = useState({ tasks: [], total: 0 });
 	const [page, setPage] = useState<number>(Math.ceil(data.total / 10) + 1);
+
+	const dispatch = useAppDispatch();
+	  const { items, loading, error, deleteLoading, deleteError, updateLoading, updateError } = useAppSelector(state => state.todos);
+
+	const [editingId, setEditingId] = useState<string | null>(null);
+  	const [editForm, setEditForm] = useState<Partial<Todo>>({});
+	
+	const handleDelete = (id: string) => {
+    	dispatch(deleteTodo(id));
+	};
+
+	const handleEditInit = (todo: Todo) => {
+		setEditingId(todo.id);
+		setEditForm({ ...todo });
+	};
+
+	const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setEditForm({ ...editForm, [e.target.name]: e.target.value });
+	};
+
+	const handleEditSave = () => {
+		if (editingId && editForm) {
+		dispatch(updateTodo({ ...(editForm as Todo), id: editingId }));
+		setEditingId(null);
+		setEditForm({});
+		}
+	};
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+	useEffect(() => {
+		dispatch(fetchTodos());
+	}, [dispatch])
+
+
 	const searchParams = useSearchParams();
 	const { replace } = useRouter();
 	const pathname = usePathname();
 	const table = useReactTable({
-		data: data?.tasks ?? [],
+		data: items ?? [],
 		columns: taskColumns,
 		meta: {
 			a: 1,
